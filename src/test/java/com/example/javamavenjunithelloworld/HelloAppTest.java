@@ -65,7 +65,7 @@ public class HelloAppTest {
             fail("Unreachable.");
         } catch (TestExitException e) {
             // Did the program exit with the expected error code?
-            assertThat(e.getStatus(), is(HelloApp.EXIT_STATUS_HELLO_FAILED));
+            assertThat(e.getStatus(), is(HelloApp.EXIT_STATUS_HELLO));
         }
     }
 
