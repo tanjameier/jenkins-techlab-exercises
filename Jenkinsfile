@@ -1,20 +1,20 @@
 pipeline {
-    agent any
+    agent { label env.JOB_NAME.split('/')[0] }
     options {
         buildDiscarder(logRotator(numToKeepStr: '5'))
         timeout(time: 10, unit: 'MINUTES')
-        timestamps()  // Timestamper Plugin
-        disableConcurrentBuilds()
+        timestamps()  // Requires the "Timestamper Plugin"
     }
-    tools {
-        jdk 'jdk11'
-        maven 'maven36'
+    triggers {
+        pollSCM('H/5 * * * *')
     }
     stages {
         stage('Build') {
             steps {
-                sh 'mvn -B -V -U -e clean verify -Dsurefire.useFile=false -DargLine="-Djdk.net.URLClassPath.disableClassPathURLCheck=true"'
-                archiveArtifacts 'target/*.?ar'
+                withEnv(["JAVA_HOME=${tool 'jdk11'}", "PATH+MAVEN=${tool 'maven35'}/bin:${env.JAVA_HOME}/bin"]) {
+                    sh 'mvn -B -V -U -e clean verify -Dsurefire.useFile=false -Dmaven.test.failure.ignore=true'
+                    archiveArtifacts 'target/*.?ar'
+                }
             }
             post {
                 always {
@@ -25,25 +25,16 @@ pipeline {
     }
     post {
         success {
-            rocketSend (
-                avatar: 'https://chat.puzzle.ch/emoji-custom/success.png',
-                message: "Build success - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)",
-                rawMessage: true
-            )
+            mail to: "me@ne.me", subject: "Build success - ${env.JOB_NAME} ${env.BUILD_NUMBER}",
+                 body: "Success of build: ${env.JOB_NAME} ${env.BUILD_NUMBER}\nSee results in Jenkins: <${env.BUILD_URL}>"
         }
         unstable {
-            rocketSend (
-                avatar: 'https://chat.puzzle.ch/emoji-custom/unstable.png',
-                message: "Build unstable - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)",
-                rawMessage: true
-            )
+            mail to: "tanja.meier@centrisag.ch", subject: "Build unstable - ${env.JOB_NAME} ${env.BUILD_NUMBER}",
+                 body: "Unstable build: ${env.JOB_NAME} ${env.BUILD_NUMBER}\nSee results in Jenkins: <${env.BUILD_URL}>"
         }
         failure {
-            rocketSend (
-                avatar: 'https://chat.puzzle.ch/emoji-custom/failure.png',
-                message: "Build failure - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)",
-                rawMessage: true
-            )
+            mail to: "me@ne.me", subject: "Build failure - ${env.JOB_NAME} ${env.BUILD_NUMBER}",
+                 body: "Build failed: ${env.JOB_NAME} ${env.BUILD_NUMBER}\nSee results in Jenkins: <${env.BUILD_URL}>"
         }
     }
 }
