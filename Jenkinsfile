@@ -6,16 +6,10 @@ pipeline {
         timestamps()  // Timestamper Plugin
         disableConcurrentBuilds()
     }
-    tools {
-        jdk 'jdk11'
-        maven 'maven36'
-    }
     stages {
         stage('Build') {
             steps {
-                sh 'mvn -B -V -U -e clean verify -Dsurefire.useFile=false -DargLine="-Djdk.net.URLClassPath.disableClassPathURLCheck=true"'
-                archiveArtifacts 'target/*.?ar'
-                junit 'target/**/*.xml'  // Requires JUnit plugin
+                sh "docker build -t test-app:latest ."
             }
         }
     }
